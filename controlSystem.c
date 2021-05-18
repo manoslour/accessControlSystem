@@ -1,15 +1,27 @@
 #include "controlSystem.h"
 
-int main(int argc, char *argv[]){
+int wait_for_syscall(pid_t child) {
+    
+    int status;
+    while(1) {
+        ptrace(PTRACE_SYSCALL, child, 0, 0);
+        waitpid(child, &status, 0);
+        if (WIFSTOPPED(status) && WSTOPSIG(status) & 0x80)
+            return 0;
+        if (WIFEXITED(status))
+            return 1;
+    }
+}
 
+void mapSystemCalls(char* file){
+    
     FILE *fptr;
-    int i, size;
     size_t len = 0;
+    int i;
     char *line = NULL;
-    char* sequence[25];
-    char* linesArray[25];
+    char* token, *word;
 
-    fptr = fopen(argv[1], "r");
+    fptr = fopen(file, "r");
     if (fptr == NULL) {
         printf("Error in reading file\n");
         exit(1);
@@ -17,33 +29,33 @@ int main(int argc, char *argv[]){
 
     i = 0;
     while (getline(&line, &len, fptr) != -1) {
-        line[strcspn(line, "\n")] = 0; //Remove trailing newline character 
-        linesArray[i] = strdup(line);
+        word = strdup(line);
+        token = strtok(word, " ");
+        syscalls[i].name = token;
+        token = strtok(NULL, "\n");
+        syscalls[i].num = atoi(token);
         i++;
     }
 
-    size = i-1;
-    struct systemCall sysCalls[size];
-
-    i = 0;
-    char* token = strtok(linesArray[0], " ");
-    while (token != NULL) {
-        sequence[i] = token;
-        printf("sequence[%d] = %s\n", i, sequence[i]);
-        token = strtok(NULL, " ");
-        i++;
-    }
-
-    for(i = 0; i < size; i++){
-        token = strtok(linesArray[i+1], " ");
-        sysCalls[i].name = strdup(token);
-        token = strtok(NULL, " ");
-        sysCalls[i].limit = strdup(token); 
-        printf("Syscalls[%d]: name = %s | limit = %s\n", i, sysCalls[i].name, sysCalls[i].limit);        
-    }
-
-    free(line);
     fclose(fptr);
+}
+
+void printMap() {
     
-    return 0;
+    printf("\n----SYSTEM CALLS MAP----\n\n");
+    for(int i = 0; i < SYSCALLS_SIZE; i++){
+        printf("%s(%d)\n", syscalls[i].name, syscalls[i].num);
+    }
+}
+
+void setSyscallNum(struct systemCall *node) {
+    
+    printf("Input call name = %s\n", node->name);
+    for(int i = 0; i < SYSCALLS_SIZE; i++) {
+        if (strcmp(node->name, syscalls[i].name) == 0){
+            printf("syscall found\n");
+            node->num = syscalls[i].num;
+            return;
+        }
+    }
 }

@@ -1,4 +1,3 @@
-mprotect mprotect munmap
+setxattr lgetxattr io_cancel
 clone 5
-mmap 6
-getid 3
+getcwd 6
