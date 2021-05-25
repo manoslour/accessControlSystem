@@ -1,7 +1,7 @@
 # accessControlSystem
 
 
-Run as follwing:
+Run as following:
 
 	./crypto instructions.txt syscallsTable exec_command
 
